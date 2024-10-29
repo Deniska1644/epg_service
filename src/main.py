@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
+
 from auth.routers import router as auth_router
 from dateapp.routers import router as date_app_router
 
