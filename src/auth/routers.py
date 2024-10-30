@@ -1,11 +1,17 @@
+import shutil
+import os
+from fastapi import Form
+from pydantic import BaseModel
 from fastapi import APIRouter, File, UploadFile, Body
 from fastapi import Depends
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from typing import Annotated, Optional
+from datetime import datetime
 
 from schemas.auth_schemas import Token, UserRegistration
 from auth.depends import authenticate_user, get_jwt, registrate_user
 from exeptions.auth_exeptions import incorrect_username_or_password
+from utils.watermark.watermark_creater import image_worker
 
 
 router = APIRouter(
@@ -24,16 +30,14 @@ async def login_for_access_token(
     return tokens
 
 
-@router.post('/create', response_model=UserRegistration)
+@router.post('/create')
 async def register_user(
-    user_data: UserRegistration = Body(...),
-    file: Optional[UploadFile] = File(None)
+    user_data: UserRegistration = Depends()
 ):
-    tokens = await registrate_user(user_data)
-    if file:
-        # Обработка файла (например, сохранение)
-        with open(file.filename, "wb") as f:
-            content = await file.read()
-            f.write(content)
-        tokens['photo_filename'] = file.filename  # Добавляем имя файла в ответ
+    if not user_data.file:
+        tokens = await registrate_user(user_data)
+        return tokens
+    photo_path = await image_worker.save_image(user_data)
+    image_worker.watermark_image(photo_path)
+    tokens = await registrate_user(user_data, str(photo_path))
     return tokens
