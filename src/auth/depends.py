@@ -25,9 +25,9 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_token(data: dict):
+def create_token(data: dict, ttl: int):
     to_encode = data.copy()
-    token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    token_expires = timedelta(minutes=ttl)
     expire = datetime.now(timezone.utc) + token_expires
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
@@ -36,8 +36,8 @@ def create_token(data: dict):
 
 
 def get_jwt(data: dict) -> Token:
-    access_token = create_token(data)
-    refresh_token = create_token(data)
+    access_token = create_token(data, settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token = create_token(data, settings.REFRESH_TOKEN_EXPIRE_MINUTES)
     token_type = 'bearer'
     return Token(
         access_token=access_token,
@@ -63,16 +63,20 @@ async def authenticate_user(login: str, password: str):
     return user
 
 
-async def registrate_user(user_registrated: UserRegistration):
+async def registrate_user(user_registrated: UserRegistration, photo_path: str | None = None):
     hashed_password = get_password_hash(user_registrated.password)
     tokens: Token = get_jwt(data={'sub': user_registrated.login})
     user_registrated.password = hashed_password
     delattr(user_registrated, 'password')
     user = await pg_worcker_db.set_data(
         model=Users,
+        login=user_registrated.login,
+        name=user_registrated.name,
+        last_name=user_registrated.last_name,
         hashed_password=hashed_password,
+        email=user_registrated.email,
         refresh_token=tokens.refresh_token,
-        ** user_registrated.dict()
+        photo=photo_path
     )
     if not user:
         raise user_alredy_exist
