@@ -19,6 +19,7 @@ class Users(Base):
     date_registration = Column(DateTime, server_default=func.now())
     refresh_token = Column(String, nullable=False, unique=True)
     deleted = Column(Boolean, default=False)
+    sex = Column(String, nullable=False)
 
     user_address = relationship(
         'UserAddress', backref='user', uselist=False, lazy='select')

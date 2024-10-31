@@ -70,6 +70,7 @@ async def registrate_user(user_registrated: UserRegistration, photo_path: str | 
     delattr(user_registrated, 'password')
     user = await pg_worcker_db.set_data(
         model=Users,
+        sex=user_registrated.sex,
         login=user_registrated.login,
         name=user_registrated.name,
         last_name=user_registrated.last_name,
