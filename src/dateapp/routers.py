@@ -1,14 +1,25 @@
-from fastapi import APIRouter, Depends
-from typing import Annotated
+from fastapi import APIRouter, Depends, Query
+from typing import Optional, Annotated
+from enum import Enum
 
 from auth.depends import get_current_user
 from schemas.auth_schemas import UserLogin
+from schemas.app_schemas import UserFilter
+from dateapp.depends import get_list_user
 
-router = APIRouter()
+router = APIRouter(
+    prefix=''
+)
+
+
+class SexEnum(str, Enum):
+    male = "male"
+    female = "female"
 
 
 @router.get('/list')
 async def main(
-    current_user: Annotated[UserLogin, Depends(get_current_user)]
+    filter: UserFilter = Depends()
 ):
-    return {'status': current_user.refresh_token}
+    res = await get_list_user(filter)
+    return {'smf': res}

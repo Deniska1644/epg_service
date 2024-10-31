@@ -1,12 +1,8 @@
-import shutil
-import os
-from fastapi import Form
-from pydantic import BaseModel
-from fastapi import APIRouter, File, UploadFile, Body
+from fastapi import APIRouter
 from fastapi import Depends
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from typing import Annotated, Optional
-from datetime import datetime
+from typing import Annotated
+
 
 from schemas.auth_schemas import Token, UserRegistration
 from auth.depends import authenticate_user, get_jwt, registrate_user
@@ -15,7 +11,7 @@ from utils.watermark.watermark_creater import image_worker
 
 
 router = APIRouter(
-    prefix='/clients'
+    prefix='/auth'
 )
 
 

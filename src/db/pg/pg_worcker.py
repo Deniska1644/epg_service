@@ -1,13 +1,14 @@
 import asyncio
-from sqlalchemy import select, insert, delete, update
+from sqlalchemy import select, insert, delete, update, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from typing import Type
+from typing import Type, Dict
 
 
 from db.connect import DbConnect
 from config import settings
 from models.models import Users
+from schemas.app_schemas import UserFilter
 
 
 class PgWorckerBase(DbConnect):
@@ -37,7 +38,6 @@ class PgWorckerBase(DbConnect):
 
             except Exception as e:
                 print(f"{e}")
-                await self.rollback()
                 return None
 
     async def update_data(self,  model: Type[DeclarativeMeta], filter_field: str, filter_value: str, **kwargs):
@@ -68,4 +68,35 @@ class PgWorckerBase(DbConnect):
                 return None
 
 
+class UserPaginator(PgWorckerBase):
+    async def get_users(self, filters: UserFilter = None, start: int = 0, stap: int = 10):
+        async with self.async_session_maker() as session:
+            try:
+                filters_query = []
+
+                for key, value in filters.dict().items():
+                    if value is not None:
+                        if key == 'date_registration_from':
+                            filters_query.append(
+                                Users.date_registration >= filters.date_registration_from)
+                        elif key == 'date_registration_to':
+                            filters_query.append(
+                                Users.date_registration <= filters.date_registration_to)
+                        else:
+                            filters_query.append(
+                                (getattr(Users, key) == value))
+                query = select(Users).where(
+                    and_(
+                        *filters_query
+                    )
+                )
+                res = await session.execute(query)
+                data = res.scalars().all()
+                return data
+            except Exception as e:
+                print(f"{e}")
+                return None
+
+
 pg_worcker_db = PgWorckerBase(settings.pg_url())
+pagination = UserPaginator(settings.pg_url())
